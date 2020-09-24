@@ -1,67 +1,19 @@
 package main
 
 import (
+	"github.com/barajas123/go-lib-rabbit/rabbit"
 	"github.com/sirupsen/logrus"
-	"github.com/streadway/amqp"
 	"os"
-	"strings"
 )
 
+func main() {
 
-func main(){
-
-	conn , err := amqp.Dial("amqp://admin:guest@localhost:5672/")
+	p := rabbit.NewRabbitWithTopic("flow-raw")
+	m := os.Args
+	err := p.PublishMessage(m[1])
 	if err != nil {
-		logrus.Error("Connection to Rabbit")
+		logrus.Errorf(err.Error())
 		return
 	}
-	defer conn.Close()
-
-	ch , err := conn.Channel()
-	if err != nil{
-		logrus.Error("Failed to open channel")
-		return
-	}
-
-	err = ch.ExchangeDeclare(
-		"flow",
-		"fanout",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-
-	if err != nil{
-		logrus.Error("Failed to declare exchange")
-		return
-	}
-	body := bodyFrom(os.Args)
-	err = ch.Publish(
-		"logs",
-		"",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body: []byte(body),
-		})
-	if err != nil{
-		logrus.Error("failed to publish message")
-		return
-	}
-
-	logrus.Info("Message delivered")
-
-}
-
-func bodyFrom(args []string) string {
-	var s string
-	if (len(args) < 2) || os.Args[1] == "" {
-		s = "hello"
-	} else {
-		s = strings.Join(args[1:], " ")
-	}
-	return s
+	logrus.Info("Success")
 }
