@@ -46,16 +46,6 @@ func (r *WithTopic) PublishMessage(msg string) error {
 	}
 
 	defer ch.Close()
-	// assure exchange exists
-	err = ch.ExchangeDeclare(
-		r.TopicName,
-		"topic",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
 	// publishing message
 	err = ch.Publish(
 		r.ExchangeKind,
@@ -95,16 +85,6 @@ func (r *WithTopic) Consume() {
 		logrus.Error(err.Error())
 		return
 	}
-
-	err = ch.ExchangeDeclare(
-		r.TopicName, // name
-		"topic",     // type
-		true,        // durable
-		false,       // auto-deleted
-		false,       // internal
-		false,       // no-wait
-		nil,         // arguments
-	)
 	if err != nil {
 		logrus.Error("Failed to declare exchange")
 		logrus.Error(err.Error())
@@ -118,7 +98,6 @@ func (r *WithTopic) Consume() {
 		false,
 		nil,
 	)
-
 	if err != nil {
 		logrus.Error("Failed to declare queue")
 		logrus.Error(err.Error())
