@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	p := rabbit.NewRabbitWithTopic("flow-raw")
+	p := rabbit.NewRabbitWithTopic("flow-raw", "flow.*")
 	m := os.Args
 	err := p.PublishMessage(m[1])
 	if err != nil {

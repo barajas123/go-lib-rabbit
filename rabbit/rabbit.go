@@ -11,9 +11,10 @@ type WithTopic struct {
 	URI          string
 	ExchangeKind string
 	TopicName    string
+	BindingKey   string
 }
 
-func NewRabbitWithTopic(topic string) *WithTopic {
+func NewRabbitWithTopic(topic, bKey string) *WithTopic {
 
 	usr := os.Getenv("RABBIT_USER")
 	pss := os.Getenv("RABBIT_PASS")
@@ -22,8 +23,9 @@ func NewRabbitWithTopic(topic string) *WithTopic {
 	uri := URIBuilderRabbit(usr, pss, ip)
 
 	return &WithTopic{
-		URI:       uri,
-		TopicName: topic,
+		URI:        uri,
+		TopicName:  topic,
+		BindingKey: bKey,
 	}
 }
 
@@ -54,7 +56,6 @@ func (r *WithTopic) PublishMessage(msg string) error {
 		false,
 		nil,
 	)
-
 	// publishing message
 	err = ch.Publish(
 		r.ExchangeKind,
@@ -83,6 +84,7 @@ func (r *WithTopic) Consume() {
 	conn, err := amqp.Dial(r.URI)
 	if err != nil {
 		logrus.Error("Error connecting to RabbitMQ")
+		logrus.Error(err.Error())
 		return
 	}
 	defer conn.Close()
@@ -90,9 +92,24 @@ func (r *WithTopic) Consume() {
 	ch, err := conn.Channel()
 	if err != nil {
 		logrus.Error("Failed to open channel")
+		logrus.Error(err.Error())
 		return
 	}
 
+	err = ch.ExchangeDeclare(
+		r.TopicName, // name
+		"topic",     // type
+		true,        // durable
+		false,       // auto-deleted
+		false,       // internal
+		false,       // no-wait
+		nil,         // arguments
+	)
+	if err != nil {
+		logrus.Error("Failed to declare exchange")
+		logrus.Error(err.Error())
+		return
+	}
 	q, err := ch.QueueDeclare(
 		r.TopicName,
 		false,
@@ -104,6 +121,19 @@ func (r *WithTopic) Consume() {
 
 	if err != nil {
 		logrus.Error("Failed to declare queue")
+		logrus.Error(err.Error())
+		return
+	}
+
+	err = ch.QueueBind(q.Name,
+		r.BindingKey,
+		r.TopicName,
+		false,
+		nil,
+	)
+	if err != nil {
+		logrus.Error("Failed to bind queue")
+		logrus.Error(err.Error())
 		return
 	}
 
