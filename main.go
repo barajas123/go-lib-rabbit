@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	p := rabbit.NewRabbitWithFanout("fff")
+	p := rabbit.NewRabbitWithFanout("raw")
 	m := os.Args
 	err := p.PublishMessage(m[1])
 	if err != nil {
