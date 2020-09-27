@@ -10,10 +10,10 @@ import (
 type WithTopic struct {
 	URI          string
 	ExchangeKind string
-	TopicName    string
+	ExchangeName    string
 }
 
-func NewRabbitWithFanout(topic string) *WithTopic {
+func NewRabbitWithFanout(exName string) *WithTopic {
 
 	usr := os.Getenv("RABBIT_USER")
 	pss := os.Getenv("RABBIT_PASS")
@@ -23,7 +23,8 @@ func NewRabbitWithFanout(topic string) *WithTopic {
 
 	return &WithTopic{
 		URI:       uri,
-		TopicName: topic,
+		ExchangeName: exName,
+		ExchangeKind: "fanout",
 	}
 }
 
@@ -44,9 +45,10 @@ func (r *WithTopic) PublishMessage(msg string) (err error) {
 	}
 
 	defer ch.Close()
+
 	err = ch.ExchangeDeclare(
-		r.TopicName, // name
-		"fanout",    // type
+		r.ExchangeName, // name
+		r.ExchangeKind,    // type
 		true,        // durable
 		false,       // auto-deleted
 		false,       // internal
@@ -59,7 +61,7 @@ func (r *WithTopic) PublishMessage(msg string) (err error) {
 	}
 	// publishing message
 	err = ch.Publish(
-		r.ExchangeKind,
+		r.ExchangeName,
 		"",
 		false,
 		false,
@@ -96,8 +98,8 @@ func (r *WithTopic) Consume() (err error) {
 		return
 	}
 	err = ch.ExchangeDeclare(
-		r.TopicName, // name
-		"fanout",    // type
+		r.ExchangeName, // name
+		r.ExchangeKind,    // type
 		true,        // durable
 		false,       // auto-deleted
 		false,       // internal
@@ -106,36 +108,32 @@ func (r *WithTopic) Consume() (err error) {
 	)
 	if err != nil {
 		logrus.Error("Failed to declare exchange")
-		logrus.Error(err.Error())
 		return
 	}
+
 	q, err := ch.QueueDeclare(
-		"",
+		r.ExchangeName,
 		false,
 		false,
 		true,
 		false,
 		nil,
-	)
-	if err != nil {
+		)
+	if err != nil{
 		logrus.Error("Failed to declare queue")
 		logrus.Error(err.Error())
 		return
 	}
-
-	err = ch.QueueBind(q.Name,
+	err = ch.QueueBind(
+		q.Name,
 		"",
-		r.TopicName,
+		r.ExchangeName,
 		false,
 		nil,
-	)
-	if err != nil {
-		logrus.Error("Failed to bind queue")
-		logrus.Error(err.Error())
-		return
-	}
+		)
+
 	msgs, err := ch.Consume(
-		q.Name,
+		r.ExchangeName,
 		"",
 		true,
 		false,
@@ -146,6 +144,7 @@ func (r *WithTopic) Consume() (err error) {
 
 	if err != nil {
 		logrus.Error("Failed to register consumer")
+		logrus.Error(err.Error())
 		return
 	}
 
