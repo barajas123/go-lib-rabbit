@@ -106,7 +106,6 @@ func (r *WithTopic) Consume() (err error) {
 	)
 	if err != nil {
 		logrus.Error("Failed to declare exchange")
-		logrus.Error(err.Error())
 		return
 	}
 	q, err := ch.QueueDeclare(
@@ -150,7 +149,7 @@ func (r *WithTopic) Consume() (err error) {
 	}
 
 	for d := range msgs {
-		logrus.Info(d.Body)
+		logrus.Info(string(d.Body))
 	}
 	return
 }
