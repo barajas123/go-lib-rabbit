@@ -46,10 +46,16 @@ func (r *WithTopic) PublishMessage(msg string) error {
 	}
 
 	defer ch.Close()
+	err = ch.ExchangeDeclare(r.TopicName, "fanout", true, false, false, false, nil)
+	if err != nil {
+		logrus.Error("Failed to declare exchange")
+		logrus.Error(err.Error())
+		return err
+	}
 	// publishing message
 	err = ch.Publish(
-		r.ExchangeKind,
 		r.TopicName,
+		"",
 		false,
 		false,
 		amqp.Publishing{
@@ -85,14 +91,16 @@ func (r *WithTopic) Consume() {
 		logrus.Error(err.Error())
 		return
 	}
+
+	err = ch.ExchangeDeclare(r.TopicName, "fanout", true, false, false, false, nil)
 	if err != nil {
 		logrus.Error("Failed to declare exchange")
 		logrus.Error(err.Error())
 		return
 	}
 	q, err := ch.QueueDeclare(
-		r.TopicName,
-		false,
+		"",
+		true,
 		false,
 		true,
 		false,
@@ -104,8 +112,9 @@ func (r *WithTopic) Consume() {
 		return
 	}
 
-	err = ch.QueueBind(q.Name,
-		r.BindingKey,
+	err = ch.QueueBind(
+		q.Name,
+		"",
 		r.TopicName,
 		false,
 		nil,
@@ -132,7 +141,7 @@ func (r *WithTopic) Consume() {
 	}
 
 	for d := range msgs {
-		logrus.Info(d.Body)
+		logrus.Info(string(d.Body))
 	}
 
 }
